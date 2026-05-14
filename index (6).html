@@ -1,0 +1,743 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>공모주 캘린더</title>
+<link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg:      #f7f7f5;
+  --surface: #ffffff;
+  --border:  #e8e8e4;
+  --text:    #111110;
+  --text2:   #6f6e69;
+  --text3:   #a8a29e;
+  --accent:  #1a1a1a;
+  --blue:    #2563eb;
+  --blue-bg: #eff6ff;
+  --green:   #16a34a;
+  --green-bg:#f0fdf4;
+  --red:     #dc2626;
+  --red-bg:  #fef2f2;
+  --amber:   #d97706;
+  --amber-bg:#fffbeb;
+  --purple:  #7c3aed;
+  --purple-bg:#faf5ff;
+  --r: 10px;
+  --r-sm: 6px;
+}
+
+[data-dark] {
+  --bg:      #111110;
+  --surface: #1c1c1a;
+  --border:  #2a2a27;
+  --text:    #fafaf8;
+  --text2:   #a8a29e;
+  --text3:   #57534e;
+  --accent:  #fafaf8;
+  --blue-bg: #1e3a8a18;
+  --green-bg:#14532d18;
+  --red-bg:  #7f1d1d18;
+  --amber-bg:#78350f18;
+  --purple-bg:#4c1d9518;
+}
+
+html { font-family: 'Pretendard', -apple-system, sans-serif; }
+body { background: var(--bg); color: var(--text); min-height: 100vh; transition: background .25s, color .25s; }
+button, input { font-family: inherit; }
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+/* ── 레이아웃 ── */
+.wrap { max-width: 960px; margin: 0 auto; padding: 0 20px 60px; }
+
+/* ── 헤더 ── */
+.header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 28px 0 24px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 28px;
+}
+.header-left { display: flex; align-items: baseline; gap: 10px; }
+.header-title { font-size: 20px; font-weight: 800; letter-spacing: -0.5px; }
+.header-sub { font-size: 12px; color: var(--text3); font-weight: 400; }
+.header-right { display: flex; align-items: center; gap: 8px; }
+
+/* ── 버튼 ── */
+.btn {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 7px 14px; border-radius: var(--r-sm);
+  font-size: 12px; font-weight: 600; border: none; cursor: pointer;
+  transition: all .15s; white-space: nowrap; letter-spacing: -0.2px;
+}
+.btn-dark  { background: var(--accent); color: var(--bg); }
+.btn-dark:hover { opacity: .85; }
+.btn-ghost { background: none; color: var(--text2); border: 1px solid var(--border); }
+.btn-ghost:hover { background: var(--border); color: var(--text); }
+.btn-icon  { padding: 7px 8px; background: none; border: 1px solid var(--border); color: var(--text2); border-radius: var(--r-sm); cursor: pointer; font-size: 14px; display: flex; align-items: center; }
+.btn-icon:hover { background: var(--border); }
+.btn-blue   { background: var(--blue); color: #fff; }
+.btn-blue:hover { filter: brightness(1.1); }
+.btn-purple { background: var(--purple); color: #fff; }
+.btn-purple:hover { filter: brightness(1.1); }
+.btn-sm { padding: 5px 10px; font-size: 11px; }
+
+/* ── 검색 ── */
+.search-row { display: flex; gap: 8px; margin-bottom: 20px; align-items: center; flex-wrap: wrap; }
+.search-box {
+  flex: 1; min-width: 180px;
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--r-sm); padding: 8px 14px 8px 34px;
+  font-size: 13px; color: var(--text); outline: none;
+  transition: border-color .15s;
+}
+.search-box:focus { border-color: var(--blue); }
+.search-wrap { position: relative; flex: 1; min-width: 180px; }
+.search-ico { position: absolute; left: 11px; top: 50%; transform: translateY(-50%); color: var(--text3); font-size: 13px; pointer-events: none; }
+.filter-chip {
+  padding: 6px 12px; border-radius: 20px; font-size: 12px; font-weight: 500;
+  border: 1px solid var(--border); background: var(--surface); color: var(--text2);
+  cursor: pointer; transition: all .15s;
+}
+.filter-chip:hover { border-color: var(--blue); color: var(--blue); }
+.filter-chip.on { background: var(--blue); color: #fff; border-color: var(--blue); }
+
+/* ── 캘린더 ── */
+.cal-nav { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+.cal-month { font-size: 17px; font-weight: 700; letter-spacing: -0.5px; }
+.cal-nav-btns { display: flex; gap: 4px; align-items: center; }
+.cal-nav-btn {
+  width: 28px; height: 28px; border-radius: var(--r-sm);
+  border: 1px solid var(--border); background: var(--surface);
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; font-size: 14px; color: var(--text2); transition: all .15s;
+}
+.cal-nav-btn:hover { background: var(--border); }
+.today-btn { padding: 4px 10px; font-size: 11px; font-weight: 600; border: 1px solid var(--border); background: var(--surface); border-radius: var(--r-sm); cursor: pointer; color: var(--text2); transition: all .15s; }
+.today-btn:hover { background: var(--border); }
+
+.cal-grid {
+  display: grid; grid-template-columns: repeat(7, 1fr);
+  border: 1px solid var(--border); border-radius: var(--r); overflow: hidden;
+  background: var(--border); gap: 1px;
+}
+.cal-dow {
+  background: var(--surface); padding: 8px 0; text-align: center;
+  font-size: 10px; font-weight: 700; color: var(--text3); text-transform: uppercase; letter-spacing: .5px;
+}
+.cal-cell {
+  background: var(--surface); min-height: 90px; padding: 7px 8px;
+  transition: background .1s; position: relative;
+}
+.cal-cell.dim { background: var(--bg); }
+.cal-cell.dim .cal-dn { color: var(--text3); }
+.cal-cell.today-cell { background: var(--blue-bg); }
+.cal-dn {
+  font-size: 11px; font-weight: 600; color: var(--text2); margin-bottom: 4px;
+  width: 20px; height: 20px; display: flex; align-items: center; justify-content: center;
+  border-radius: 50%; flex-shrink: 0;
+}
+.cal-cell.today-cell .cal-dn { background: var(--blue); color: #fff; font-weight: 700; }
+.cal-cell.sun .cal-dn { color: var(--red); }
+.cal-cell.sat .cal-dn { color: var(--blue); }
+.cal-evs { display: flex; flex-direction: column; gap: 2px; }
+.cal-ev {
+  font-size: 10px; font-weight: 600; padding: 2px 6px; border-radius: 3px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  cursor: pointer; transition: opacity .1s; letter-spacing: -.2px;
+}
+.cal-ev:hover { opacity: .7; }
+.t-start  { background: #dbeafe; color: #1e40af; }
+.t-end    { background: #fee2e2; color: #991b1b; }
+.t-mid    { background: #e0e7ff; color: #3730a3; }
+.t-refund { background: #fef3c7; color: #92400e; }
+.t-list   { background: #dcfce7; color: #166534; }
+[data-dark] .t-start  { background: #1e3a8a30; color: #93c5fd; }
+[data-dark] .t-end    { background: #7f1d1d30; color: #fca5a5; }
+[data-dark] .t-mid    { background: #31207130; color: #c4b5fd; }
+[data-dark] .t-refund { background: #78350f30; color: #fde68a; }
+[data-dark] .t-list   { background: #14532d30; color: #86efac; }
+.cal-more { font-size: 9px; color: var(--text3); cursor: pointer; padding: 1px 4px; }
+.cal-more:hover { color: var(--blue); }
+
+/* ── 범례 ── */
+.legend { display: flex; gap: 12px; margin-bottom: 16px; flex-wrap: wrap; }
+.leg { display: flex; align-items: center; gap: 4px; font-size: 11px; color: var(--text2); }
+.leg-dot { width: 8px; height: 8px; border-radius: 2px; flex-shrink: 0; }
+
+/* ── 리스트 ── */
+.list { display: flex; flex-direction: column; gap: 1px; background: var(--border); border: 1px solid var(--border); border-radius: var(--r); overflow: hidden; }
+.list-item {
+  background: var(--surface); padding: 14px 16px;
+  display: flex; align-items: center; gap: 12px; cursor: pointer;
+  transition: background .1s;
+}
+.list-item:hover { background: var(--bg); }
+.li-logo {
+  width: 38px; height: 38px; border-radius: 8px; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 13px; font-weight: 800;
+}
+.li-main { flex: 1; min-width: 0; }
+.li-name { font-size: 14px; font-weight: 700; letter-spacing: -.3px; }
+.li-sub  { font-size: 11px; color: var(--text3); margin-top: 2px; }
+.li-dates { display: flex; gap: 5px; margin-top: 5px; flex-wrap: wrap; }
+.li-tag  { font-size: 10px; font-weight: 600; padding: 2px 6px; border-radius: 3px; letter-spacing: -.2px; }
+.li-right { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; flex-shrink: 0; }
+.li-price { font-size: 13px; font-weight: 700; letter-spacing: -.3px; }
+.li-range { font-size: 10px; color: var(--text3); }
+
+/* ── 상태 ── */
+.status {
+  font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 10px;
+  display: inline-flex; align-items: center; gap: 3px; letter-spacing: -.2px;
+}
+.s-upcoming { background: var(--blue-bg); color: var(--blue); }
+.s-active   { background: var(--green-bg); color: var(--green); }
+.s-active::before { content:''; width:5px; height:5px; border-radius:50%; background:var(--green); animation: pulse 1.5s infinite; }
+.s-refund   { background: var(--amber-bg); color: var(--amber); }
+.s-listed   { background: var(--purple-bg); color: var(--purple); }
+@keyframes pulse { 0%,100%{opacity:1}50%{opacity:.3} }
+[data-dark] .s-active { background: #14532d20; }
+
+/* ── 배지 ── */
+.badge { font-size: 10px; font-weight: 600; padding: 2px 6px; border-radius: 3px; letter-spacing: -.2px; }
+.b-kospi  { background: var(--blue-bg); color: var(--blue); }
+.b-kosdaq { background: var(--purple-bg); color: var(--purple); }
+
+/* ── 탭 ── */
+.tabs { display: flex; gap: 1px; background: var(--border); border-radius: var(--r-sm); padding: 3px; margin-bottom: 20px; width: fit-content; }
+.tab { padding: 6px 14px; border-radius: 5px; font-size: 12px; font-weight: 600; border: none; background: none; color: var(--text2); cursor: pointer; transition: all .15s; letter-spacing: -.2px; }
+.tab.on { background: var(--surface); color: var(--text); box-shadow: 0 1px 3px rgba(0,0,0,.08); }
+
+/* ── 슬라이드 패널 ── */
+.overlay { position: fixed; inset: 0; background: rgba(0,0,0,.35); z-index: 200; display: flex; justify-content: flex-end; backdrop-filter: blur(2px); animation: fi .2s; }
+@keyframes fi { from{opacity:0} to{opacity:1} }
+.panel {
+  width: 420px; max-width: 100vw; height: 100vh;
+  background: var(--surface); overflow-y: auto;
+  animation: si .22s ease; box-shadow: -8px 0 32px rgba(0,0,0,.12);
+  display: flex; flex-direction: column;
+}
+@keyframes si { from{transform:translateX(100%)} to{transform:translateX(0)} }
+.panel-head {
+  padding: 20px 22px 16px; border-bottom: 1px solid var(--border);
+  position: sticky; top: 0; background: var(--surface); z-index: 10;
+  display: flex; align-items: flex-start; justify-content: space-between;
+}
+.panel-title { font-size: 20px; font-weight: 800; letter-spacing: -.5px; }
+.panel-sub   { font-size: 12px; color: var(--text3); margin-top: 2px; }
+.close-btn {
+  width: 26px; height: 26px; border-radius: 5px; border: 1px solid var(--border);
+  background: none; display: flex; align-items: center; justify-content: center;
+  cursor: pointer; font-size: 13px; color: var(--text2); transition: all .15s; flex-shrink: 0;
+}
+.close-btn:hover { background: var(--red-bg); border-color: var(--red); color: var(--red); }
+.panel-body { padding: 20px 22px; flex: 1; display: flex; flex-direction: column; gap: 22px; }
+
+/* ── 타임라인 ── */
+.tl { display: flex; flex-direction: column; }
+.tl-row { display: flex; gap: 12px; }
+.tl-line-wrap { display: flex; flex-direction: column; align-items: center; width: 20px; flex-shrink: 0; }
+.tl-dot  { width: 9px; height: 9px; border-radius: 50%; margin-top: 4px; flex-shrink: 0; }
+.tl-vline { flex: 1; width: 1px; background: var(--border); margin-top: 3px; min-height: 12px; }
+.tl-row:last-child .tl-vline { display: none; }
+.tl-content { padding-bottom: 14px; }
+.tl-lbl  { font-size: 10px; color: var(--text3); text-transform: uppercase; letter-spacing: .5px; }
+.tl-date { font-size: 13px; font-weight: 700; letter-spacing: -.3px; margin-top: 1px; }
+.tl-past { opacity: .38; }
+
+/* ── 정보 그리드 ── */
+.info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.info-box { background: var(--bg); border-radius: var(--r-sm); padding: 10px 12px; border: 1px solid var(--border); }
+.info-lbl { font-size: 10px; color: var(--text3); margin-bottom: 3px; letter-spacing: .2px; }
+.info-val { font-size: 14px; font-weight: 700; letter-spacing: -.3px; }
+.info-sub { font-size: 10px; color: var(--text3); margin-top: 1px; }
+
+/* ── 섹션 레이블 ── */
+.sec-lbl { font-size: 10px; font-weight: 700; color: var(--text3); text-transform: uppercase; letter-spacing: .8px; margin-bottom: 10px; }
+
+/* ── 연동 버튼 그룹 ── */
+.connect-group { display: flex; flex-direction: column; gap: 6px; }
+.connect-row {
+  display: flex; align-items: center; justify-content: space-between;
+  background: var(--bg); border-radius: var(--r-sm); padding: 10px 14px;
+  border: 1px solid var(--border); font-size: 12px; font-weight: 500; color: var(--text2);
+}
+.connect-row strong { color: var(--text); font-weight: 700; }
+
+/* ── 노션 미리보기 ── */
+.notion-pre {
+  background: var(--bg); border: 1px solid var(--border); border-radius: var(--r-sm);
+  padding: 12px 14px; font-size: 11px; color: var(--text2);
+  line-height: 1.7; font-family: 'Menlo', 'Monaco', monospace;
+  white-space: pre-wrap; max-height: 130px; overflow-y: auto;
+}
+
+/* ── 토스트 ── */
+.toasts { position: fixed; bottom: 20px; right: 20px; z-index: 400; display: flex; flex-direction: column; gap: 6px; pointer-events: none; }
+.toast {
+  background: var(--text); color: var(--bg); padding: 10px 14px;
+  border-radius: var(--r-sm); font-size: 12px; font-weight: 600;
+  display: flex; align-items: center; gap: 7px;
+  animation: ti .2s ease; box-shadow: 0 4px 16px rgba(0,0,0,.15);
+  letter-spacing: -.2px;
+}
+@keyframes ti { from{transform:translateY(8px);opacity:0} to{transform:translateY(0);opacity:1} }
+
+/* ── 빈 상태 ── */
+.empty { text-align: center; padding: 48px 0; color: var(--text3); font-size: 13px; }
+.empty-ico { font-size: 36px; margin-bottom: 10px; }
+
+/* ── 로딩 ── */
+.loading { text-align: center; padding: 80px 0; color: var(--text3); }
+.spin { width: 20px; height: 20px; border: 2px solid var(--border); border-top-color: var(--blue); border-radius: 50%; animation: sp .7s linear infinite; margin: 0 auto 12px; }
+@keyframes sp { to{transform:rotate(360deg)} }
+
+@media(max-width: 640px) {
+  .panel { width: 100vw; }
+  .info-grid { grid-template-columns: 1fr; }
+  .header-sub { display: none; }
+}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const { useState, useEffect, useMemo } = React;
+
+const DATA_URL = './data/ipos.json';
+const MONTHS = ['1월','2월','3월','4월','5월','6월','7월','8월','9월','10월','11월','12월'];
+const DAYS   = ['일','월','화','수','목','금','토'];
+
+/* ── 헬퍼 ── */
+const fmt     = n => (!n && n!==0) ? '-' : Number(n).toLocaleString();
+const fmtD    = s => { if(!s) return '-'; const d=new Date(s); return `${d.getMonth()+1}/${d.getDate()}`; };
+const fmtDfull= s => { if(!s) return '-'; const d=new Date(s); return `${d.getFullYear()}.${String(d.getMonth()+1).padStart(2,'0')}.${String(d.getDate()).padStart(2,'0')}`; };
+const toDs    = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+
+function getStatus(ipo) {
+  const now=new Date(); now.setHours(0,0,0,0);
+  const ss=new Date(ipo.subscribeStart), se=new Date(ipo.subscribeEnd), ld=new Date(ipo.listingDate);
+  if(now<ss)           return 'upcoming';
+  if(now>=ss&&now<=se) return 'active';
+  if(now>se&&now<ld)   return 'refund';
+  return 'listed';
+}
+
+const STATUS_INFO = {
+  upcoming: { cls:'s-upcoming', label:'청약 예정' },
+  active:   { cls:'s-active',   label:'청약 중' },
+  refund:   { cls:'s-refund',   label:'환불/배정' },
+  listed:   { cls:'s-listed',   label:'상장 완료' },
+};
+
+const SECTOR_COLORS = {
+  '인터넷은행':'#2563eb','외식/프랜차이즈':'#ea580c','AI/소프트웨어':'#7c3aed',
+  '뷰티/헬스케어':'#ec4899','게임/엔터테인먼트':'#0891b2','바이오/제약':'#059669',
+  '반도체':'#ca8a04','2차전지':'#16a34a','건설':'#6b7280','기타':'#9ca3af',
+};
+
+/* ── 토스트 ── */
+let _setT = null;
+function Toasts({ list, set }) {
+  _setT = set;
+  return <div className="toasts">{list.map(t=><div key={t.id} className="toast">{t.icon} {t.msg}</div>)}</div>;
+}
+function toast(msg, icon='✅') {
+  if (!_setT) return;
+  const id = Date.now()+Math.random();
+  _setT(p=>[...p,{id,msg,icon}]);
+  setTimeout(()=>_setT(p=>p.filter(t=>t.id!==id)), 2800);
+}
+
+/* ── 캘린더 뷰 ── */
+function CalView({ ipos, onPick }) {
+  const today = new Date();
+  const [y, setY] = useState(today.getFullYear());
+  const [m, setM] = useState(today.getMonth());
+
+  const cells = useMemo(()=>{
+    const first=new Date(y,m,1), last=new Date(y,m+1,0), out=[];
+    for(let i=0;i<first.getDay();i++) out.push({d:new Date(y,m,1-first.getDay()+i),other:true});
+    for(let i=1;i<=last.getDate();i++) out.push({d:new Date(y,m,i),other:false});
+    while(out.length%7!==0) out.push({d:new Date(y,m+1,out.length-last.getDate()-first.getDay()+1),other:true});
+    return out;
+  },[y,m]);
+
+  function evs(date) {
+    const ds = toDs(date), out = [];
+    ipos.forEach(ipo=>{
+      if(ipo.subscribeStart===ds) out.push({t:'청약시작',cls:'t-start',ipo});
+      if(ipo.subscribeEnd===ds)   out.push({t:'청약마감',cls:'t-end',  ipo});
+      if(ipo.refundDate===ds)     out.push({t:'환불',    cls:'t-refund',ipo});
+      if(ipo.listingDate===ds)    out.push({t:'상장',    cls:'t-list', ipo});
+      if(ds>ipo.subscribeStart&&ds<ipo.subscribeEnd) out.push({t:'청약중',cls:'t-mid',ipo});
+    });
+    return out;
+  }
+
+  const prev = ()=>m===0?(setY(y-1),setM(11)):setM(m-1);
+  const next = ()=>m===11?(setY(y+1),setM(0)):setM(m+1);
+  const isToday = d => toDs(d)===toDs(today);
+  const listingCnt = ipos.filter(i=>{const d=new Date(i.listingDate);return d.getMonth()===m&&d.getFullYear()===y;}).length;
+
+  return (
+    <div>
+      <div className="legend">
+        {[['#bfdbfe','청약시작'],['#fecaca','청약마감'],['#c7d2fe','청약중'],['#fde68a','환불'],['#bbf7d0','상장']].map(([c,l])=>(
+          <div key={l} className="leg"><div className="leg-dot" style={{background:c}}/>{l}</div>
+        ))}
+      </div>
+      <div className="cal-nav">
+        <div style={{display:'flex',alignItems:'center',gap:8}}>
+          <span className="cal-month">{y}년 {MONTHS[m]}</span>
+          {listingCnt>0 && <span className="badge b-kospi">{listingCnt}종목 상장</span>}
+        </div>
+        <div className="cal-nav-btns">
+          <button className="cal-nav-btn" onClick={prev}>‹</button>
+          <button className="today-btn" onClick={()=>{setY(today.getFullYear());setM(today.getMonth());}}>오늘</button>
+          <button className="cal-nav-btn" onClick={next}>›</button>
+        </div>
+      </div>
+      <div className="cal-grid">
+        {DAYS.map(d=><div key={d} className="cal-dow">{d}</div>)}
+        {cells.map((cell,i)=>{
+          const dow=cell.d.getDay(), ev=evs(cell.d), td=isToday(cell.d);
+          return (
+            <div key={i} className={['cal-cell',cell.other?'dim':'',td?'today-cell':'',dow===0?'sun':dow===6?'sat':''].filter(Boolean).join(' ')}>
+              <div className="cal-dn">{cell.d.getDate()}</div>
+              <div className="cal-evs">
+                {ev.slice(0,3).map((e,j)=>(
+                  <div key={j} className={`cal-ev ${e.cls}`} onClick={()=>onPick(e.ipo)}>{e.t} {e.ipo.name}</div>
+                ))}
+                {ev.length>3 && <div className="cal-more" onClick={()=>onPick(ev[3].ipo)}>+{ev.length-3}개</div>}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+/* ── 리스트 아이템 ── */
+function ListItem({ ipo, onClick }) {
+  const color = ipo.sector_color || SECTOR_COLORS[ipo.sector] || '#9ca3af';
+  const st = STATUS_INFO[getStatus(ipo)];
+  return (
+    <div className="list-item" onClick={()=>onClick(ipo)}>
+      <div className="li-logo" style={{background:`${color}18`,color}}>{(ipo.ticker||ipo.name).slice(0,2)}</div>
+      <div className="li-main">
+        <div style={{display:'flex',alignItems:'center',gap:6,flexWrap:'wrap'}}>
+          <span className="li-name">{ipo.name}</span>
+          <span className={`badge ${ipo.market==='KOSPI'?'b-kospi':'b-kosdaq'}`}>{ipo.market}</span>
+          <span className={`status ${st.cls}`}>{st.label}</span>
+        </div>
+        <div className="li-sub">{ipo.sector}{ipo.manager?` · ${ipo.manager.split(',')[0].trim()}`:''}</div>
+        <div className="li-dates">
+          <span className="li-tag t-start">청약 {fmtD(ipo.subscribeStart)}~{fmtD(ipo.subscribeEnd)}</span>
+          {ipo.refundDate&&<span className="li-tag t-refund">환불 {fmtD(ipo.refundDate)}</span>}
+          <span className="li-tag t-list">상장 {fmtD(ipo.listingDate)}</span>
+        </div>
+      </div>
+      <div className="li-right">
+        {ipo.offeringPrice>0 && <div className="li-price">{fmt(ipo.offeringPrice)}원</div>}
+        {ipo.offeringPriceRange&&<div className="li-range">{ipo.offeringPriceRange}</div>}
+      </div>
+    </div>
+  );
+}
+
+/* ── 상세 패널 ── */
+function Panel({ ipo, onClose }) {
+  const now = new Date(); now.setHours(0,0,0,0);
+  const color = ipo.sector_color || SECTOR_COLORS[ipo.sector] || '#9ca3af';
+  const st = STATUS_INFO[getStatus(ipo)];
+
+  const tl = [
+    {lbl:'청약 시작', date:ipo.subscribeStart, color:'#2563eb'},
+    {lbl:'청약 마감', date:ipo.subscribeEnd,   color:'#dc2626'},
+    {lbl:'환불일',    date:ipo.refundDate,      color:'#d97706'},
+    {lbl:'상장일',    date:ipo.listingDate,     color:'#16a34a'},
+  ].filter(t=>t.date);
+
+  /* ── 구글 캘린더 ── */
+  function gcal(dateKey, title) {
+    const date = ipo[dateKey]; if(!date) return;
+    const d  = date.replace(/-/g,'');
+    const nd = new Date(new Date(date).getTime()+86400000).toISOString().slice(0,10).replace(/-/g,'');
+    const det = encodeURIComponent(`공모가: ${fmt(ipo.offeringPrice)}원 | 주관사: ${ipo.manager||'-'} | 공모주 캘린더`);
+    window.open(`https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(title)}&dates=${d}/${nd}&details=${det}`,'_blank');
+    toast('구글 캘린더 등록 창을 열었습니다','📅');
+  }
+
+  function gcalAll() {
+    [
+      ['subscribeStart', `[청약시작] ${ipo.name}`],
+      ['subscribeEnd',   `[청약마감] ${ipo.name}`],
+      ['refundDate',     `[환불] ${ipo.name}`],
+      ['listingDate',    `[상장] ${ipo.name}`],
+    ].filter(([k])=>ipo[k]).forEach(([k,title],i)=>{
+      setTimeout(()=>gcal(k,title), i*650);
+    });
+    toast('4개 이벤트가 순서대로 열립니다','📅');
+  }
+
+  /* ── 노션 ── */
+  function copyNotion() {
+    const txt = [
+      `# ${ipo.name}`,
+      ``,
+      `| 구분 | 날짜 |`,
+      `|---|---|`,
+      `| 청약 시작 | ${fmtDfull(ipo.subscribeStart)} |`,
+      `| 청약 마감 | ${fmtDfull(ipo.subscribeEnd)} |`,
+      `| 환불일 | ${fmtDfull(ipo.refundDate)} |`,
+      `| 상장일 | ${fmtDfull(ipo.listingDate)} |`,
+      ``,
+      `| 항목 | 내용 |`,
+      `|---|---|`,
+      `| 시장 | ${ipo.market} |`,
+      `| 업종 | ${ipo.sector} |`,
+      `| 공모가 | ${fmt(ipo.offeringPrice)}원 |`,
+      `| 밴드 | ${ipo.offeringPriceRange||'-'}원 |`,
+      `| 주관사 | ${ipo.manager||'-'} |`,
+      ipo.description ? `\n${ipo.description}` : '',
+    ].filter(l=>l!==undefined).join('\n');
+    navigator.clipboard.writeText(txt).then(()=>toast('노션 마크다운 복사 완료!','📋'));
+  }
+
+  const notionPreview = `# ${ipo.name}\n청약  ${fmtDfull(ipo.subscribeStart)} ~ ${fmtDfull(ipo.subscribeEnd)}\n환불  ${fmtDfull(ipo.refundDate)}\n상장  ${fmtDfull(ipo.listingDate)}\n공모가 ${fmt(ipo.offeringPrice)}원`;
+
+  return (
+    <div className="overlay" onClick={e=>e.target===e.currentTarget&&onClose()}>
+      <div className="panel">
+        {/* 헤더 */}
+        <div className="panel-head">
+          <div>
+            <div style={{display:'flex',alignItems:'center',gap:7,marginBottom:4,flexWrap:'wrap'}}>
+              <div className="panel-title">{ipo.name}</div>
+              <span className={`badge ${ipo.market==='KOSPI'?'b-kospi':'b-kosdaq'}`}>{ipo.market}</span>
+              <span className={`status ${st.cls}`}>{st.label}</span>
+            </div>
+            <div className="panel-sub">{ipo.sector}{ipo.manager?` · ${ipo.manager.split(',')[0].trim()}`:''}</div>
+          </div>
+          <button className="close-btn" onClick={onClose}>✕</button>
+        </div>
+
+        <div className="panel-body">
+          {/* 일정 타임라인 */}
+          <div>
+            <div className="sec-lbl">📅 청약 일정</div>
+            <div className="tl">
+              {tl.map((t,i)=>{
+                const past = new Date(t.date)<now;
+                return (
+                  <div key={i} className={`tl-row${past?' tl-past':''}`}>
+                    <div className="tl-line-wrap">
+                      <div className="tl-dot" style={{background:past?'var(--border)':t.color}}/>
+                      <div className="tl-vline"/>
+                    </div>
+                    <div className="tl-content">
+                      <div className="tl-lbl">{t.lbl}{past?' · 완료':''}</div>
+                      <div className="tl-date">{fmtDfull(t.date)}</div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* 공모 정보 */}
+          <div>
+            <div className="sec-lbl">💰 공모 정보</div>
+            <div className="info-grid">
+              {[
+                {l:'공모가',    v:`${fmt(ipo.offeringPrice)}원`,   s:ipo.offeringPriceRange?`밴드 ${ipo.offeringPriceRange}원`:''},
+                {l:'공모 주식수',v:`${fmt(ipo.offeringShares)}주`, s:''},
+                {l:'주관사',    v:(ipo.manager||'-').split(',')[0].trim(), s:(ipo.manager||'').split(',').slice(1).join(',').trim()||''},
+                {l:'업종',      v:ipo.sector,                      s:''},
+              ].map((item,i)=>(
+                <div key={i} className="info-box">
+                  <div className="info-lbl">{item.l}</div>
+                  <div className="info-val">{item.v}</div>
+                  {item.s&&<div className="info-sub">{item.s}</div>}
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* 구글 캘린더 */}
+          <div>
+            <div className="sec-lbl">📅 구글 캘린더 등록</div>
+            <div className="connect-group">
+              <div className="connect-row">
+                <span><strong>청약 시작일</strong> {fmtDfull(ipo.subscribeStart)}</span>
+                <button className="btn btn-blue btn-sm" onClick={()=>gcal('subscribeStart',`[청약시작] ${ipo.name}`)}>+ 등록</button>
+              </div>
+              <div className="connect-row">
+                <span><strong>청약 마감일</strong> {fmtDfull(ipo.subscribeEnd)}</span>
+                <button className="btn btn-blue btn-sm" onClick={()=>gcal('subscribeEnd',`[청약마감] ${ipo.name}`)}>+ 등록</button>
+              </div>
+              <div className="connect-row">
+                <span><strong>환불일</strong> {fmtDfull(ipo.refundDate)}</span>
+                <button className="btn btn-blue btn-sm" onClick={()=>gcal('refundDate',`[환불] ${ipo.name}`)}>+ 등록</button>
+              </div>
+              <div className="connect-row">
+                <span><strong>상장일</strong> {fmtDfull(ipo.listingDate)}</span>
+                <button className="btn btn-blue btn-sm" onClick={()=>gcal('listingDate',`[상장] ${ipo.name}`)}>+ 등록</button>
+              </div>
+              <button className="btn btn-blue" style={{width:'100%',justifyContent:'center',marginTop:2}} onClick={gcalAll}>
+                📅 4개 일정 한번에 등록
+              </button>
+            </div>
+            <div style={{fontSize:11,color:'var(--text3)',marginTop:6,lineHeight:1.6}}>
+              ※ 구글 계정으로 로그인된 상태에서 클릭하면 바로 이벤트 추가 창이 열립니다.
+            </div>
+          </div>
+
+          {/* 노션 */}
+          <div>
+            <div className="sec-lbl">📋 노션 복사</div>
+            <div className="notion-pre">{notionPreview}</div>
+            <div style={{fontSize:11,color:'var(--text3)',margin:'6px 0 8px',lineHeight:1.6}}>
+              마크다운 형식으로 복사됩니다. 노션에서 Ctrl+V 붙여넣기 하면 표가 자동 생성됩니다.
+            </div>
+            <button className="btn btn-purple" style={{width:'100%',justifyContent:'center'}} onClick={copyNotion}>
+              📋 노션 마크다운 복사
+            </button>
+          </div>
+
+          {/* 기업 개요 */}
+          {ipo.description && (
+            <div>
+              <div className="sec-lbl">기업 개요</div>
+              <p style={{fontSize:12,color:'var(--text2)',lineHeight:1.7}}>{ipo.description}</p>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ── 앱 ── */
+function App() {
+  const [ipos, setIpos]   = useState([]);
+  const [status, setStatus] = useState('loading');
+  const [updatedAt, setUpdatedAt] = useState('');
+  const [tab, setTab]     = useState('cal');
+  const [picked, setPicked] = useState(null);
+  const [search, setSearch] = useState('');
+  const [fStatus, setFStatus] = useState('all');
+  const [dark, setDark]   = useState(()=>{ try{return localStorage.getItem('ipo_dark')==='1';}catch{return false;} });
+  const [toasts, setToasts] = useState([]);
+
+  useEffect(()=>{
+    fetch(DATA_URL+'?t='+Date.now())
+      .then(r=>{ if(!r.ok) throw 0; return r.json(); })
+      .then(data=>{
+        setIpos(data);
+        setStatus('ok');
+        const dates = data.map(i=>i.updated_at).filter(Boolean).sort().reverse();
+        if(dates[0]) setUpdatedAt(dates[0]);
+      })
+      .catch(()=>setStatus('error'));
+  },[]);
+
+  useEffect(()=>{
+    document.documentElement.toggleAttribute('data-dark', dark);
+    try{ localStorage.setItem('ipo_dark', dark?'1':'0'); }catch{}
+  },[dark]);
+
+  const now = new Date();
+  const filtered = useMemo(()=>{
+    let l = [...ipos];
+    if(search.trim()) {
+      const q = search.toLowerCase();
+      l = l.filter(i=>i.name.toLowerCase().includes(q)||(i.sector||'').toLowerCase().includes(q));
+    }
+    if(fStatus!=='all') l = l.filter(i=>getStatus(i)===fStatus);
+    return l.sort((a,b)=>new Date(a.subscribeStart||0)-new Date(b.subscribeStart||0));
+  },[ipos,search,fStatus]);
+
+  const activeNow = ipos.filter(i=>getStatus(i)==='active').length;
+  const upcoming  = ipos.filter(i=>getStatus(i)==='upcoming').length;
+
+  return (
+    <div className="wrap">
+      <Toasts list={toasts} set={setToasts}/>
+
+      {/* 헤더 */}
+      <div className="header">
+        <div className="header-left">
+          <span className="header-title">공모주 캘린더</span>
+          {updatedAt && <span className="header-sub">{updatedAt} 업데이트</span>}
+        </div>
+        <div className="header-right">
+          {activeNow>0 && <span className="status s-active">{activeNow}개 청약 중</span>}
+          {upcoming>0  && <span className="status s-upcoming">{upcoming}개 예정</span>}
+          <button className="btn-icon" onClick={()=>setDark(v=>!v)}>{dark?'☀️':'🌙'}</button>
+        </div>
+      </div>
+
+      {/* 로딩 / 오류 */}
+      {status==='loading' && (
+        <div className="loading"><div className="spin"/><div>데이터를 불러오는 중...</div></div>
+      )}
+      {status==='error' && (
+        <div className="empty">
+          <div className="empty-ico">⚠️</div>
+          <div>데이터를 불러올 수 없습니다.</div>
+          <div style={{fontSize:11,marginTop:4}}>GitHub Actions가 아직 실행되지 않았을 수 있습니다.</div>
+        </div>
+      )}
+
+      {status==='ok' && (<>
+        {/* 검색 & 필터 */}
+        <div className="search-row">
+          <div className="search-wrap">
+            <span className="search-ico">🔍</span>
+            <input className="search-box" placeholder="종목명, 업종 검색..." value={search} onChange={e=>setSearch(e.target.value)}/>
+          </div>
+          {[['all','전체'],['active','청약 중'],['upcoming','예정'],['listed','상장']].map(([v,l])=>(
+            <button key={v} className={`filter-chip${fStatus===v?' on':''}`} onClick={()=>setFStatus(v)}>{l}</button>
+          ))}
+        </div>
+
+        {/* 탭 */}
+        <div className="tabs">
+          <button className={`tab${tab==='cal'?' on':''}`} onClick={()=>setTab('cal')}>📅 캘린더</button>
+          <button className={`tab${tab==='list'?' on':''}`} onClick={()=>setTab('list')}>📋 리스트 {filtered.length>0&&`(${filtered.length})`}</button>
+        </div>
+
+        {/* 캘린더 */}
+        {tab==='cal' && (
+          <CalView ipos={filtered} onPick={setPicked}/>
+        )}
+
+        {/* 리스트 */}
+        {tab==='list' && (
+          filtered.length===0
+            ? <div className="empty"><div className="empty-ico">📭</div><div>종목이 없습니다.</div></div>
+            : <div className="list">{filtered.map(ipo=><ListItem key={ipo.id} ipo={ipo} onClick={setPicked}/>)}</div>
+        )}
+      </>)}
+
+      {/* 상세 패널 */}
+      {picked && <Panel ipo={picked} onClose={()=>setPicked(null)}/>}
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
+</body>
+</html>
